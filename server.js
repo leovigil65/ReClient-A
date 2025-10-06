@@ -335,6 +335,20 @@ wss.on('connection', (ws) => {
           data: queueData
         }));
       }
+      
+      // Handle Virtual Patrol event subscription
+      if (data.type === 'subscribe_vp_events') {
+        console.log('Client subscribed to Virtual Patrol events:', data.events);
+        ws.vpEventsSubscribed = true;
+        ws.vpEventTypes = data.events || ['intrusion', 'confirmed_intrusion', 'camera_offline'];
+        
+        // Send confirmation
+        ws.send(JSON.stringify({
+          type: 'vp_subscription_confirmed',
+          events: ws.vpEventTypes
+        }));
+      }
+      
     } catch (error) {
       console.error('Errore WebSocket:', error);
     }
@@ -342,6 +356,99 @@ wss.on('connection', (ws) => {
   
   ws.on('close', () => {
     console.log('Client WebSocket disconnesso');
+  });
+});
+
+// Function to broadcast Virtual Patrol events to subscribed clients
+function broadcastVPEvent(eventData) {
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN && client.vpEventsSubscribed) {
+      // Check if client is interested in this event type
+      if (!client.vpEventTypes || client.vpEventTypes.includes(eventData.event_type)) {
+        client.send(JSON.stringify({
+          type: 'vp_event',
+          data: eventData
+        }));
+      }
+    }
+  });
+}
+
+// API endpoint to simulate Virtual Patrol events (for testing)
+app.post('/api/vp-event', (req, res) => {
+  try {
+    const eventData = req.body;
+    
+    // Validate event data
+    if (!eventData.event_type) {
+      return res.status(400).json({
+        success: false,
+        error: 'event_type is required'
+      });
+    }
+    
+    // Add timestamp if not present
+    if (!eventData.timestamp) {
+      eventData.timestamp = new Date().toISOString();
+    }
+    
+    // Broadcast to connected clients
+    broadcastVPEvent(eventData);
+    
+    console.log(`📡 Broadcasting VP event: ${eventData.event_type}`);
+    
+    res.json({
+      success: true,
+      message: 'Virtual Patrol event broadcasted',
+      event: eventData
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// API endpoint to get sample Virtual Patrol events
+app.get('/api/vp-sample-events', (req, res) => {
+  const sampleEvents = [
+    {
+      event_type: 'intrusion',
+      camera_id: 'CAM_001',
+      timestamp: new Date().toISOString(),
+      metadata: {
+        detection_count: 2,
+        avg_confidence: 85.5,
+        json_path: '/data/detections/cam001_20251006_143022.json'
+      }
+    },
+    {
+      event_type: 'confirmed_intrusion',
+      camera_id: 'CAM_002',
+      title: 'Confirmed human intrusion in restricted area',
+      timestamp: new Date().toISOString(),
+      metadata: {
+        json_path: '/data/confirmed/cam002_20251006_143055.json',
+        confidence: 95.2
+      }
+    },
+    {
+      event_type: 'camera_offline',
+      camera_id: 'CAM_003',
+      timestamp: new Date().toISOString(),
+      metadata: {
+        camera_name: 'Front Entrance Camera',
+        json_path: '/data/status/cam003_offline_20251006_143102.json',
+        last_seen: '2025-10-06T14:25:00Z'
+      }
+    }
+  ];
+  
+  res.json({
+    success: true,
+    events: sampleEvents
   });
 });
 
