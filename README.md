@@ -1,73 +1,73 @@
 # ReClient-A
 
-Una aplicación web moderna construida con React.
+A modern web application built with React.
 
-## Características
+## Features
 
-- ⚡ **Rápido y Eficiente**: Construido con React para máximo rendimiento
-- 📱 **Responsivo**: Diseño adaptable para todos los dispositivos
-- 🎨 **Diseño Moderno**: Interfaz elegante y limpia
-- 🔒 **Seguro**: Implementado con las mejores prácticas de seguridad
-- ⚙️ **Configurable**: Altamente personalizable
-- 🚀 **Escalable**: Arquitectura robusta que crece con tus necesidades
+- ⚡ **Fast and Efficient**: Built with React for maximum performance
+- 📱 **Responsive**: Adaptive design for all devices
+- 🎨 **Modern Design**: Elegant and clean interface
+- 🔒 **Secure**: Implemented with security best practices
+- ⚙️ **Configurable**: Highly customizable
+- 🚀 **Scalable**: Robust architecture that grows with your needs
 
-## Instalación
+## Installation
 
-1. Clona el repositorio:
+1. Clone the repository:
 ```bash
-git clone <url-del-repositorio>
+git clone <repository-url>
 cd ReClient-A
 ```
 
-2. Instala las dependencias:
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Inicia el servidor de desarrollo:
+3. Start the development server:
 ```bash
 npm start
 ```
 
-La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
+The application will be available at [http://localhost:3000](http://localhost:3000).
 
-## Scripts Disponibles
+## Available Scripts
 
-- `npm start` - Inicia el servidor de desarrollo
-- `npm build` - Construye la aplicación para producción
-- `npm test` - Ejecuta las pruebas
-- `npm eject` - Expone la configuración de webpack (irreversible)
+- `npm start` - Starts the development server
+- `npm build` - Builds the app for production
+- `npm test` - Runs the tests
+- `npm eject` - Exposes webpack configuration (irreversible)
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 src/
-  ├── components/     # Componentes React reutilizables
-  │   ├── Header.js   # Componente de encabezado
-  │   ├── Hero.js     # Sección hero principal
-  │   ├── Features.js # Sección de características
-  │   └── Footer.js   # Componente de pie de página
-  ├── App.js          # Componente principal
-  ├── App.css         # Estilos principales
-  ├── index.js        # Punto de entrada
-  └── index.css       # Estilos globales
+  ├── components/     # Reusable React components
+  │   ├── Header.js   # Header component
+  │   ├── Hero.js     # Main hero section
+  │   ├── Features.js # Features section
+  │   └── Footer.js   # Footer component
+  ├── App.js          # Main component
+  ├── App.css         # Main styles
+  ├── index.js        # Entry point
+  └── index.css       # Global styles
 ```
 
-## Tecnologías Utilizadas
+## Technologies Used
 
 - React 18
-- CSS3 (Grid, Flexbox, Animaciones)
+- CSS3 (Grid, Flexbox, Animations)
 - Create React App
-- Web Vitals para métricas de rendimiento
+- Web Vitals for performance metrics
 
-## Contribuir
+## Contributing
 
-1. Fork el proyecto
-2. Crea una rama para tu característica (`git checkout -b feature/nueva-caracteristica`)
-3. Commit tus cambios (`git commit -am 'Añade nueva característica'`)
-4. Push a la rama (`git push origin feature/nueva-caracteristica`)
-5. Abre un Pull Request
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Commit your changes (`git commit -am 'Add new feature'`)
+4. Push to the branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
 
-## Licencia
+## License
 
-Este proyecto está bajo la Licencia MIT.
+This project is under the MIT License.

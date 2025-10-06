@@ -7,10 +7,10 @@ const Header = () => {
         <nav className="nav">
           <div className="logo">ReClient-A</div>
           <ul className="nav-links">
-            <li><a href="#home">Inicio</a></li>
-            <li><a href="#features">Características</a></li>
-            <li><a href="#about">Acerca de</a></li>
-            <li><a href="#contact">Contacto</a></li>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
           </ul>
         </nav>
       </div>
