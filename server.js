@@ -346,7 +346,7 @@ wss.on('connection', (ws) => {
 });
 
 // Avvio del server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3030;
 
 async function startServer() {
   await connectRedis();
