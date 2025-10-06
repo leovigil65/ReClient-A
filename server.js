@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Configurazione Redis
 const redisClient = redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379/0'
+  url: process.env.REDIS_URL || 'redis://redis:6379/0'
 });
 
 // Fallback in-memory storage
