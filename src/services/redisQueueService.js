@@ -1,7 +1,7 @@
 // Servizio per gestire la comunicazione con Redis tramite il backend
 class RedisQueueService {
   constructor() {
-    this.baseURL = 'http://localhost:3001/api';
+    this.baseURL = 'http://localhost:3030/api';
     this.ws = null;
     this.listeners = new Set();
   }
@@ -9,7 +9,7 @@ class RedisQueueService {
   // Connessione WebSocket per aggiornamenti in tempo reale
   connectWebSocket() {
     try {
-      this.ws = new WebSocket('ws://localhost:3001');
+      this.ws = new WebSocket('ws://localhost:3030');
       
       this.ws.onopen = () => {
         console.log('WebSocket connesso');
