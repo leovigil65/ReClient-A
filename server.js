@@ -14,102 +14,209 @@ app.use(express.json());
 
 // Configurazione Redis
 const redisClient = redis.createClient({
-  url: 'redis://redis:6379/0'
+  url: process.env.REDIS_URL || 'redis://localhost:6379/0'
 });
+
+// Fallback in-memory storage
+let inMemoryQueue = [];
+let useRedis = false;
 
 // Gestione errori Redis
 redisClient.on('error', (err) => {
-  console.error('Redis Client Error:', err);
+  console.error('Redis Client Error:', err.message);
+  useRedis = false;
+  console.log('🔴 Fallback a storage in-memory');
 });
 
 redisClient.on('connect', () => {
-  console.log('Connesso a Redis');
+  console.log('🟢 Connesso a Redis');
+  useRedis = true;
 });
 
-// Connessione a Redis
+// Connessione a Redis con fallback
 async function connectRedis() {
   try {
     await redisClient.connect();
     console.log('Redis client connesso con successo');
+    useRedis = true;
   } catch (error) {
-    console.error('Errore connessione Redis:', error);
+    console.error('❌ Errore connessione Redis:', error.message);
+    console.log('🔄 Utilizzo storage in-memory come fallback');
+    useRedis = false;
+    await initializeFallbackData();
   }
 }
 
-// Funzione per leggere dalla coda Redis
+// Inizializza dati di fallback
+async function initializeFallbackData() {
+  inMemoryQueue = [
+    {
+      nome: 'Mario Rossi',
+      email: 'mario.rossi@email.com',
+      dataRegistrazione: '2025-10-01',
+      stato: 'In attesa'
+    },
+    {
+      nome: 'Laura Bianchi',
+      email: 'laura.bianchi@email.com',
+      dataRegistrazione: '2025-10-02',
+      stato: 'In elaborazione'
+    },
+    {
+      nome: 'Giuseppe Verdi',
+      email: 'giuseppe.verdi@email.com',
+      dataRegistrazione: '2025-10-03',
+      stato: 'In attesa'
+    },
+    {
+      nome: 'Anna Neri',
+      email: 'anna.neri@email.com',
+      dataRegistrazione: '2025-10-04',
+      stato: 'Completato'
+    },
+    {
+      nome: 'Marco Gialli',
+      email: 'marco.gialli@email.com',
+      dataRegistrazione: '2025-10-05',
+      stato: 'In attesa'
+    }
+  ];
+  console.log('📦 Dati di fallback inizializzati');
+}
+
+// Funzione per leggere dalla coda (Redis o fallback)
 async function readFromQueue(queueName = 'registration_queue') {
   try {
-    // Legge elementi dalla lista Redis (coda)
-    const items = await redisClient.lRange(queueName, 0, -1);
-    return items.map((item, index) => {
-      try {
-        const parsed = JSON.parse(item);
-        return {
-          id: index + 1,
-          ...parsed,
-          position: index + 1
-        };
-      } catch (e) {
-        return {
-          id: index + 1,
-          data: item,
-          position: index + 1
-        };
-      }
-    });
+    if (useRedis) {
+      // Legge da Redis
+      const items = await redisClient.lRange(queueName, 0, -1);
+      return items.map((item, index) => {
+        try {
+          const parsed = JSON.parse(item);
+          return {
+            id: index + 1,
+            ...parsed,
+            position: index + 1
+          };
+        } catch (e) {
+          return {
+            id: index + 1,
+            data: item,
+            position: index + 1
+          };
+        }
+      });
+    } else {
+      // Usa fallback in-memory
+      return inMemoryQueue.map((item, index) => ({
+        id: index + 1,
+        ...item,
+        position: index + 1
+      }));
+    }
   } catch (error) {
     console.error('Errore lettura coda:', error);
-    return [];
+    return inMemoryQueue.map((item, index) => ({
+      id: index + 1,
+      ...item,
+      position: index + 1
+    }));
+  }
+}
+
+// Funzione per aggiungere alla coda
+async function addToQueue(item, queueName = 'registration_queue') {
+  try {
+    if (useRedis) {
+      await redisClient.rPush(queueName, JSON.stringify(item));
+    } else {
+      inMemoryQueue.push(item);
+    }
+  } catch (error) {
+    console.error('Errore aggiunta coda:', error);
+    // Fallback a in-memory anche in caso di errore Redis
+    inMemoryQueue.push(item);
+  }
+}
+
+// Funzione per rimuovere dalla coda
+async function removeFromQueue(position, queueName = 'registration_queue') {
+  try {
+    if (useRedis) {
+      const items = await redisClient.lRange(queueName, 0, -1);
+      await redisClient.del(queueName);
+      
+      for (let i = 0; i < items.length; i++) {
+        if (i !== position - 1) {
+          await redisClient.rPush(queueName, items[i]);
+        }
+      }
+    } else {
+      if (position > 0 && position <= inMemoryQueue.length) {
+        inMemoryQueue.splice(position - 1, 1);
+      }
+    }
+  } catch (error) {
+    console.error('Errore rimozione coda:', error);
+    // Fallback a in-memory
+    if (position > 0 && position <= inMemoryQueue.length) {
+      inMemoryQueue.splice(position - 1, 1);
+    }
   }
 }
 
 // Funzione per aggiungere dati di esempio alla coda
 async function populateQueue() {
   try {
-    const sampleData = [
-      {
-        nome: 'Mario Rossi',
-        email: 'mario.rossi@email.com',
-        dataRegistrazione: '2025-10-01',
-        stato: 'In attesa'
-      },
-      {
-        nome: 'Laura Bianchi',
-        email: 'laura.bianchi@email.com',
-        dataRegistrazione: '2025-10-02',
-        stato: 'In elaborazione'
-      },
-      {
-        nome: 'Giuseppe Verdi',
-        email: 'giuseppe.verdi@email.com',
-        dataRegistrazione: '2025-10-03',
-        stato: 'In attesa'
-      },
-      {
-        nome: 'Anna Neri',
-        email: 'anna.neri@email.com',
-        dataRegistrazione: '2025-10-04',
-        stato: 'Completato'
-      },
-      {
-        nome: 'Marco Gialli',
-        email: 'marco.gialli@email.com',
-        dataRegistrazione: '2025-10-05',
-        stato: 'In attesa'
-      }
-    ];
+    if (useRedis) {
+      const sampleData = [
+        {
+          nome: 'Mario Rossi',
+          email: 'mario.rossi@email.com',
+          dataRegistrazione: '2025-10-01',
+          stato: 'In attesa'
+        },
+        {
+          nome: 'Laura Bianchi',
+          email: 'laura.bianchi@email.com',
+          dataRegistrazione: '2025-10-02',
+          stato: 'In elaborazione'
+        },
+        {
+          nome: 'Giuseppe Verdi',
+          email: 'giuseppe.verdi@email.com',
+          dataRegistrazione: '2025-10-03',
+          stato: 'In attesa'
+        },
+        {
+          nome: 'Anna Neri',
+          email: 'anna.neri@email.com',
+          dataRegistrazione: '2025-10-04',
+          stato: 'Completato'
+        },
+        {
+          nome: 'Marco Gialli',
+          email: 'marco.gialli@email.com',
+          dataRegistrazione: '2025-10-05',
+          stato: 'In attesa'
+        }
+      ];
 
-    // Svuota la coda esistente
-    await redisClient.del('registration_queue');
-    
-    // Aggiunge i dati di esempio
-    for (const item of sampleData) {
-      await redisClient.rPush('registration_queue', JSON.stringify(item));
+      // Svuota la coda esistente
+      await redisClient.del('registration_queue');
+      
+      // Aggiunge i dati di esempio
+      for (const item of sampleData) {
+        await redisClient.rPush('registration_queue', JSON.stringify(item));
+      }
+      
+      console.log('✅ Coda Redis popolata con dati di esempio');
+    } else {
+      console.log('✅ Dati di esempio già disponibili in modalità fallback');
     }
-    
-    console.log('Coda popolata con dati di esempio');
   } catch (error) {
     console.error('Errore popolamento coda:', error);
+    console.log('✅ Utilizzo dati fallback');
   }
 }
 
@@ -120,7 +227,8 @@ app.get('/api/queue', async (req, res) => {
     res.json({
       success: true,
       data: queueData,
-      count: queueData.length
+      count: queueData.length,
+      source: useRedis ? 'redis' : 'in-memory'
     });
   } catch (error) {
     res.status(500).json({
@@ -148,7 +256,7 @@ app.post('/api/queue', async (req, res) => {
       stato
     };
 
-    await redisClient.rPush('registration_queue', JSON.stringify(newItem));
+    await addToQueue(newItem);
     
     // Notifica via WebSocket
     wss.clients.forEach(client => {
@@ -163,7 +271,8 @@ app.post('/api/queue', async (req, res) => {
     res.json({
       success: true,
       message: 'Elemento aggiunto alla coda',
-      data: newItem
+      data: newItem,
+      source: useRedis ? 'redis' : 'in-memory'
     });
   } catch (error) {
     res.status(500).json({
@@ -175,26 +284,18 @@ app.post('/api/queue', async (req, res) => {
 
 app.delete('/api/queue/:position', async (req, res) => {
   try {
-    const position = parseInt(req.params.position) - 1;
+    const position = parseInt(req.params.position);
     
-    // Rimuove elemento dalla posizione specificata
-    const items = await redisClient.lRange('registration_queue', 0, -1);
+    const queueData = await readFromQueue();
     
-    if (position < 0 || position >= items.length) {
+    if (position < 1 || position > queueData.length) {
       return res.status(404).json({
         success: false,
         error: 'Posizione non valida'
       });
     }
 
-    // Ricostruisce la coda senza l'elemento specificato
-    await redisClient.del('registration_queue');
-    
-    for (let i = 0; i < items.length; i++) {
-      if (i !== position) {
-        await redisClient.rPush('registration_queue', items[i]);
-      }
-    }
+    await removeFromQueue(position);
 
     // Notifica via WebSocket
     wss.clients.forEach(client => {
@@ -208,7 +309,8 @@ app.delete('/api/queue/:position', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Elemento rimosso dalla coda'
+      message: 'Elemento rimosso dalla coda',
+      source: useRedis ? 'redis' : 'in-memory'
     });
   } catch (error) {
     res.status(500).json({
@@ -261,7 +363,13 @@ startServer().catch(console.error);
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Chiusura del server...');
-  await redisClient.disconnect();
+  if (useRedis) {
+    try {
+      await redisClient.disconnect();
+    } catch (error) {
+      console.log('Redis già disconnesso');
+    }
+  }
   server.close(() => {
     console.log('Server chiuso');
     process.exit(0);
