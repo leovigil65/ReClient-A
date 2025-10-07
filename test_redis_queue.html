@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Queue Manager - Test Interface</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1, h2 {
+            color: #333;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected { background-color: #4caf50; }
+        .status-disconnected { background-color: #f44336; }
+        
+        .btn {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .btn:hover { background-color: #1976d2; }
+        .btn-success { background-color: #4caf50; }
+        .btn-success:hover { background-color: #45a049; }
+        .btn-warning { background-color: #ff9800; }
+        .btn-warning:hover { background-color: #f57c00; }
+        .btn-danger { background-color: #f44336; }
+        .btn-danger:hover { background-color: #d32f2f; }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .queue-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .queue-item strong {
+            color: #495057;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        
+        .response {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .error { 
+            background: #ffebee; 
+            border-color: #f44336; 
+            color: #c62828; 
+        }
+        
+        .success { 
+            background: #e8f5e8; 
+            border-color: #4caf50; 
+            color: #2e7d32; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ Redis Queue Manager - Test Interface</h1>
+        
+        <div id="status-section">
+            <h2>📊 Stato Connessione</h2>
+            <div id="connection-status">
+                <span class="status-indicator status-disconnected"></span>
+                <span>Verificando connessione...</span>
+            </div>
+            <button class="btn" onclick="checkStatus()">Verifica Stato</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📈 Statistiche Coda</h2>
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="total-items">0</div>
+                <div>Totale Elementi</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="waiting-items">0</div>
+                <div>In Attesa</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="processing-items">0</div>
+                <div>In Elaborazione</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completed-items">0</div>
+                <div>Completati</div>
+            </div>
+        </div>
+        <button class="btn" onclick="loadStats()">Aggiorna Statistiche</button>
+    </div>
+
+    <div class="container">
+        <h2>➕ Aggiungi Elemento</h2>
+        <form id="add-form">
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" id="nome" required>
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label>Stato:</label>
+                <select id="stato">
+                    <option value="In attesa">In attesa</option>
+                    <option value="In elaborazione">In elaborazione</option>
+                    <option value="Completato">Completato</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">Aggiungi alla Coda</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>🗂️ Gestione Coda</h2>
+        <div>
+            <button class="btn" onclick="loadQueue()">Carica Coda</button>
+            <button class="btn btn-warning" onclick="populateQueue()">Popola con Dati Esempio</button>
+            <button class="btn btn-danger" onclick="clearQueue()">Pulisci Coda</button>
+        </div>
+        
+        <div id="queue-container" style="margin-top: 20px;">
+            <!-- Queue items will be loaded here -->
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📝 Log Risposte</h2>
+        <div id="response-log" class="response"></div>
+        <button class="btn" onclick="clearLog()">Pulisci Log</button>
+    </div>
+
+    <script>
+        const API_BASE = 'redis_queue_manager.php';
+        
+        function logResponse(data, isError = false) {
+            const log = document.getElementById('response-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = isError ? 'error' : 'success';
+            
+            log.innerHTML += `<div class="${className}">[${timestamp}] ${JSON.stringify(data, null, 2)}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('response-log').innerHTML = '';
+        }
+        
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/status`);
+                const data = await response.json();
+                
+                const statusEl = document.getElementById('connection-status');
+                const indicator = statusEl.querySelector('.status-indicator');
+                
+                if (data.success && data.data.redis_connected) {
+                    indicator.className = 'status-indicator status-connected';
+                    statusEl.innerHTML = `<span class="status-indicator status-connected"></span>
+                                         Connesso a Redis (${data.data.storage_type})`;
+                } else {
+                    indicator.className = 'status-indicator status-disconnected';
+                    statusEl.innerHTML = `<span class="status-indicator status-disconnected"></span>
+                                         Disconnesso - Modalità fallback (${data.data.storage_type})`;
+                }
+                
+                logResponse(data);
+            } catch (error) {
+                logResponse({error: error.message}, true);
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('total-items').textContent = data.data.total;
+                    document.getElementById('waiting-items').textContent = data.data.inAttesa;
+                    document.getElementById('processing-items').textContent = data.data.inElaborazione;
+                    document.getElementById('completed-items').textContent = data.data.completato;
+                }
+                
+                logResponse(data);
+            } catch (error) {
+                logResponse({error: error.message}, true);
+            }
+        }
+        
+        async function loadQueue() {
+            try {
+                const response = await fetch(API_BASE);
+                const data = await response.json();
+                
+                const container = document.getElementById('queue-container');
+                
+                if (data.success && data.data.length > 0) {
+                    container.innerHTML = data.data.map(item => `
+                        <div class="queue-item">
+                            <strong>Posizione ${item.position}:</strong> ${item.nome} (${item.email})<br>
+                            <strong>Data:</strong> ${item.dataRegistrazione} | 
+                            <strong>Stato:</strong> ${item.stato}
+                            <div style="margin-top: 10px;">
+                                <button class="btn btn-warning" onclick="updateItem(${item.position})">Modifica</button>
+                                <button class="btn btn-danger" onclick="removeItem(${item.position})">Rimuovi</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p>Nessun elemento nella coda</p>';
+                }
+                
+                logResponse(data);
+            } catch (error) {
+                logResponse({error: error.message}, true);
+            }
+        }
+        
+        async function removeItem(position) {
+            if (!confirm(`Rimuovere l'elemento in posizione ${position}?`)) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/${position}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                logResponse(data);
+                
+                if (data.success) {
+                    loadQueue();
+                    loadStats();
+                }
+            } catch (error) {
+                logResponse({error: error.message}, true);
+            }
+        }
+        
+        async function updateItem(position) {
+            const newStatus = prompt('Nuovo stato (In attesa, In elaborazione, Completato):');
+            if (!newStatus) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/${position}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        stato: newStatus
+                    })
+                });
+                const data = await response.json();
+                
+                logResponse(data);
+                
+                if (data.success) {
+                    loadQueue();
+                    loadStats();
+                }
+            } catch (error) {
+                logResponse({error: error.message}, true);
+            }
+        }
+        
+        async function populateQueue() {
+            if (!confirm('Popolare la coda con dati di esempio? Questo cancellerà i dati esistenti.')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/populate`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                logResponse(data);
+                
+                if (data.success) {
+                    loadQueue();
+                    loadStats();
+                }
+            } catch (error) {
+                logResponse({error: error.message}, true);
+            }
+        }
+        
+        async function clearQueue() {
+            if (!confirm('Pulire completamente la coda? Questa azione non può essere annullata.')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/clear`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                logResponse(data);
+                
+                if (data.success) {
+                    loadQueue();
+                    loadStats();
+                }
+            } catch (error) {
+                logResponse({error: error.message}, true);
+            }
+        }
+        
+        // Form submission
+        document.getElementById('add-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                nome: document.getElementById('nome').value,
+                email: document.getElementById('email').value,
+                stato: document.getElementById('stato').value
+            };
+            
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                const data = await response.json();
+                
+                logResponse(data);
+                
+                if (data.success) {
+                    document.getElementById('add-form').reset();
+                    loadQueue();
+                    loadStats();
+                }
+            } catch (error) {
+                logResponse({error: error.message}, true);
+            }
+        });
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            checkStatus();
+            loadStats();
+            loadQueue();
+        });
+    </script>
+</body>
+</html>
