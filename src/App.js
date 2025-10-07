@@ -4,7 +4,7 @@ import Header from './components/Header';
 import Hero from './components/Hero';
 import Features from './components/Features';
 import Footer from './components/Footer';
-import VirtualPatrolListener from './components/VirtualPatrolListener';
+import VirtualPatrolRedisClient from './components/VirtualPatrolListener';
 
 function App() {
   return (
@@ -12,7 +12,7 @@ function App() {
       <Header />
       <Hero />
       <Features />
-      <VirtualPatrolListener />
+      <VirtualPatrolRedisClient />
       <Footer />
     </div>
   );
